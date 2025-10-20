@@ -53,7 +53,7 @@ The app runs as a JavaScript World on **Ancient Brain**, allowing immediate exec
 - Share / Gallery of saved generated examples
 
 ## 👨‍💻 Author
-**Chadi — Télécom SudParis & Dublin City University**
+**Chadi — Télécom SudParis & Dublin City University**  
 **Nathan — Télécom SudParis & Dublin City University**
 
 Advanced Algorithms & AI Search (CSC1047) — Practical Project (2025)
