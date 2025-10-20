@@ -144,8 +144,8 @@ function initialize() {
 
 function generateInterface() {
     document.write(`
-<div class="orion-container">
-    <h1>ORION CROSS-CHECK AI</h1>
+<div class="codevibe-container">
+    <h1>CodeVibe Tutor</h1>
 
     <div class="info-section">
         <p>Multi-Model LLM Benchmarking for Spatial Physics</p>
@@ -268,7 +268,7 @@ html {
     min-height: 100vh;
 }
 
-.orion-container {
+.codevibe-container {
     max-width: 1200px;
     color: white;
     background: black;
