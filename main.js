@@ -18,11 +18,10 @@ if (typeof jQuery === 'undefined') {
 // =================== //
 
 const MODEL = {
-    name: "llama-3.3-70b-versatile", // Latest Llama 3.3 model (fast & powerful)
+    name: "llama-3.3-70b-versatile",
     url: "https://api.groq.com/openai/v1/chat/completions",
         maxTokens: 4000,
-        temperature: 0.7,
-    provider: "Groq"
+    temperature: 0.7
 };
 
 // Global variables
@@ -70,7 +69,6 @@ function generateInterface() {
             <input type="password" id="api-key" placeholder="Enter your Groq API key...">
             <button onclick="setAPIKey()">Set Key</button>
         </div>
-        <div id="key-status"></div>
     </div>
 
     <!-- Conversation Area -->
@@ -195,11 +193,6 @@ html, body {
 
 .input-group button:hover {
     background: #333;
-}
-
-#key-status {
-    margin-top: 10px;
-    font-size: 13px;
 }
 
 /* Conversation Area */
@@ -477,7 +470,6 @@ function sendPrompt() {
     
     // Clear input
     promptInput.value = '';
-    promptInput.style.height = 'auto';
     
     // Show loading
     showLoading();
@@ -548,7 +540,7 @@ function sendToGroq(systemPrompt, userPrompt, originalPrompt) {
             }
         ],
         temperature: MODEL.temperature,
-        max_tokens: 2000
+        max_tokens: MODEL.maxTokens
     };
     
     $.ajaxSetup({
@@ -593,8 +585,6 @@ function runCode() {
         return;
     }
     
-    console.log('Running code:', currentCode.substring(0, 100) + '...');
-    
     const modal = document.getElementById('code-modal');
     const iframe = document.getElementById('code-iframe');
     
@@ -605,7 +595,7 @@ function runCode() {
     iframe.parentNode.replaceChild(newIframe, iframe);
     
     // Show modal
-    modal.style.display = 'flex';
+    modal.style.display = 'block';
     
     // Wait a bit for iframe to be ready, then write code
     setTimeout(() => {
@@ -614,9 +604,7 @@ function runCode() {
             iframeDoc.open();
             iframeDoc.write(currentCode);
             iframeDoc.close();
-            console.log('Code executed successfully');
         } catch (error) {
-            console.error('Error executing code:', error);
             alert('Error executing code: ' + error.message);
         }
     }, 100);
