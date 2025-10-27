@@ -1,11 +1,3 @@
-/**
- * CodeVibe Tutor is an educational AI-powered app that teaches JavaScript through natural conversation.
- * Users type English prompts like "Explain how to make a bouncing ball step by step" and receive:
- * - a teaching explanation (Teach Mode)
- * - a runnable JavaScript example (Code Mode)
- * - an optional short quiz to test understanding
- */
-
 // ============== //
 // JQUERY LOADING //
 // ============== //
@@ -25,16 +17,16 @@ if (typeof jQuery === 'undefined') {
 // MODEL CONFIGURATION //
 // =================== //
 
-// 
 const MODEL = {
-    name: "gpt-3.5-turbo",
-    url: "https://api.openai.com/v1/chat/completions",
+    name: "llama-3.1-70b-versatile", // Fast and powerful Llama model
+    url: "https://api.groq.com/openai/v1/chat/completions",
     maxTokens: 4000,
-    temperature: 0.7
+    temperature: 0.7,
+    provider: "Groq"
 };
 
 // Global variables
-var openaiApiKey = "";
+var apiKey = "";
 var conversationHistory = [];
 var currentMode = "teach"; // "teach" or "code"
 var currentCode = ""; // Stores the latest generated code
@@ -75,8 +67,8 @@ function generateInterface() {
     <!-- API Key Setup -->
     <div class="api-setup" id="api-setup">
         <div class="api-setup-content">
-            <input type="password" id="openai-key" placeholder="Enter your OpenAI API Key">
-            <button onclick="setOpenAIKey()" class="btn-set">Set Key</button>
+            <input type="password" id="api-key" placeholder="Enter your Groq API Key (free at groq.com)">
+            <button onclick="setAPIKey()" class="btn-set">Set Key</button>
         </div>
         <div id="key-status"></div>
     </div>
@@ -412,10 +404,10 @@ html, body {
 // ================== //
 
 /**
- * Set the OpenAI API key
+ * Set the API key
  */
-function setOpenAIKey() {
-    openaiApiKey = document.getElementById('openai-key').value.trim();
+function setAPIKey() {
+    apiKey = document.getElementById('api-key').value.trim();
     updateKeyStatus();
 }
 
@@ -424,12 +416,12 @@ function setOpenAIKey() {
  */
 function updateKeyStatus() {
     const status = document.getElementById('key-status');
-    if (openaiApiKey) {
-        status.innerHTML = '<span style="color: #4caf50;">API key configured</span>';
+    if (apiKey) {
+        status.innerHTML = '<span style="color: #4caf50;">Groq API key configured</span>';
         // Hide the API setup section after key is set
         document.getElementById('api-setup').style.display = 'none';
     } else {
-        status.innerHTML = '<span style="color: #999;">Enter your OpenAI API key to start</span>';
+        status.innerHTML = '<span style="color: #999;">Get a free API key at <a href="https://console.groq.com" target="_blank">console.groq.com</a></span>';
     }
 }
 
@@ -550,8 +542,8 @@ function sendPrompt() {
     }
     
     // Check if we have the API key
-    if (!openaiApiKey) {
-        alert('Please set your OpenAI API key first.');
+    if (!apiKey) {
+        alert('Please set your Groq API key first. Get one free at console.groq.com');
         return;
     }
     
@@ -569,8 +561,8 @@ function sendPrompt() {
     const systemPrompt = buildSystemPrompt();
     const fullPrompt = buildFullPrompt(prompt);
     
-    // Send to OpenAI
-    sendToOpenAI(systemPrompt, fullPrompt, prompt);
+    // Send to Groq
+    sendToGroq(systemPrompt, fullPrompt, prompt);
 }
 
 /**
@@ -615,9 +607,9 @@ function buildFullPrompt(userPrompt) {
 // ========= //
 
 /**
- * Send request to OpenAI API
+ * Send request to Groq API
  */
-function sendToOpenAI(systemPrompt, userPrompt, originalPrompt) {
+function sendToGroq(systemPrompt, userPrompt, originalPrompt) {
     const requestData = {
         model: MODEL.name,
         messages: [
@@ -637,7 +629,7 @@ function sendToOpenAI(systemPrompt, userPrompt, originalPrompt) {
     $.ajaxSetup({
         headers: {
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + openaiApiKey
+            "Authorization": "Bearer " + apiKey
         }
     });
     
