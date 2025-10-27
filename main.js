@@ -18,10 +18,10 @@ if (typeof jQuery === 'undefined') {
 // =================== //
 
 const MODEL = {
-    name: "llama-3.1-70b-versatile", // Fast and powerful Llama model
+    name: "llama-3.3-70b-versatile", // Latest Llama 3.3 model (fast & powerful)
     url: "https://api.groq.com/openai/v1/chat/completions",
-    maxTokens: 4000,
-    temperature: 0.7,
+        maxTokens: 4000,
+        temperature: 0.7,
     provider: "Groq"
 };
 
@@ -61,7 +61,7 @@ function generateInterface() {
 <div class="codevibe-container">
     <!-- Header -->
     <div class="header">
-        <h1>CodeVibe Tutor</h1>
+    <h1>CodeVibe Tutor</h1>
     </div>
 
     <!-- API Key Setup -->
@@ -618,7 +618,7 @@ function sendToGroq(systemPrompt, userPrompt, originalPrompt) {
                 content: systemPrompt
             },
             {
-                role: "user",
+            role: "user",
                 content: userPrompt
             }
         ],
