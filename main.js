@@ -28,7 +28,6 @@ const MODEL = {
 // Global variables
 var apiKey = "";
 var conversationHistory = [];
-var currentMode = "teach"; // "teach" or "code"
 var currentCode = ""; // Stores the latest generated code
 
 // ============== //
@@ -81,8 +80,6 @@ function generateInterface() {
     <!-- Input Area -->
     <div class="input-area">
         <div class="mode-selector">
-            <button onclick="setMode('teach')" id="btn-teach" class="btn-mode active">Teach</button>
-            <button onclick="setMode('code')" id="btn-code" class="btn-mode">Code</button>
             <button onclick="runCode()" id="btn-run-code" class="btn-run-code" style="display: none;">
                 ▶ Run Code
             </button>
@@ -244,41 +241,19 @@ html, body {
     display: flex;
     gap: 8px;
     margin-bottom: 12px;
-    justify-content: center;
-}
-
-.btn-mode {
-    padding: 6px 16px;
-    background: #fff;
-    color: #666;
-    border: 1px solid #d0d0d0;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    transition: all 0.2s;
-}
-
-.btn-mode:hover {
-    background: #f7f7f7;
-}
-
-.btn-mode.active {
-    background: #000;
-    color: #fff;
-    border-color: #000;
+    justify-content: flex-end;
 }
 
 .btn-run-code {
-    padding: 6px 16px;
+    padding: 8px 20px;
     background: #10b981;
     color: #fff;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     transition: all 0.2s;
-    margin-left: auto;
 }
 
 .btn-run-code:hover {
@@ -425,26 +400,6 @@ function updateKeyStatus() {
     }
 }
 
-// ==== //
-// MODE //
-// ==== //
-
-/**
- * Set the current mode (teach or code)
- */
-function setMode(mode) {
-    currentMode = mode;
-    
-    // Update button states
-    document.getElementById('btn-teach').classList.remove('active');
-    document.getElementById('btn-code').classList.remove('active');
-    
-    if (mode === 'teach') {
-        document.getElementById('btn-teach').classList.add('active');
-    } else {
-        document.getElementById('btn-code').classList.add('active');
-    }
-}
 
 // ============ //
 // CONVERSATION //
@@ -566,21 +521,21 @@ function sendPrompt() {
 }
 
 /**
- * Build system prompt based on current mode
+ * Build system prompt
  */
 function buildSystemPrompt() {
-    if (currentMode === 'teach') {
-        return `You are CodeVibe Tutor, a friendly JavaScript teacher. 
-Explain programming concepts step-by-step in a clear, educational way. 
-Use simple language and provide examples when helpful. 
-Focus on helping the user understand the concepts deeply.`;
-    } else {
-        return `You are CodeVibe Tutor, a JavaScript code generator. 
-Generate clean, runnable JavaScript code based on the user's request. 
-Include comments to explain the code. 
-If the code uses canvas or DOM, make it self-contained and ready to run in an HTML page.
-Always wrap your code in a proper structure with HTML if needed.`;
-    }
+    return `You are CodeVibe Tutor, a friendly JavaScript teacher and code assistant.
+
+When the user asks for explanations, explain programming concepts step-by-step in a clear way.
+When the user asks for code, generate clean, runnable JavaScript/HTML code.
+
+If you provide code:
+- Wrap it in markdown code blocks with \`\`\`html or \`\`\`javascript
+- Make it self-contained and ready to run
+- Include helpful comments
+- If using canvas or DOM, provide a complete HTML page
+
+Be conversational, helpful, and adapt to what the user needs.`;
 }
 
 /**
@@ -646,7 +601,6 @@ function sendToGroq(systemPrompt, userPrompt, originalPrompt) {
             conversationHistory.push({
                 prompt: originalPrompt,
                 response: response,
-                mode: currentMode,
                 timestamp: new Date()
             });
             
