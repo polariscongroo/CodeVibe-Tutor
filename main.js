@@ -1,10 +1,9 @@
 /**
  * CodeVibe Tutor is an educational AI-powered app that teaches JavaScript through natural conversation.
- * Users type English prompts like “Explain how to make a bouncing ball step by step” and receive:
-
- * a teaching explanation (Teach Mode)
- * a runnable JavaScript example (Code Mode)
- * an optional short quiz to test understanding
+ * Users type English prompts like "Explain how to make a bouncing ball step by step" and receive:
+ * - a teaching explanation (Teach Mode)
+ * - a runnable JavaScript example (Code Mode)
+ * - an optional short quiz to test understanding
  */
 
 // ============== //
@@ -22,99 +21,23 @@ if (typeof jQuery === 'undefined') {
     initialize();
 }
 
-// ======================= //
-// CONFIGURATION OF MODELS //
-// ======================= //
+// =================== //
+// MODEL CONFIGURATION //
+// =================== //
 
-// Available models for benchmarking
-const AVAILABLE_MODELS = {
-    "gpt-4": {
-        name: "GPT-4",
-        provider: "openai", 
-        url: "https://api.openai.com/v1/chat/completions",
-        maxTokens: 8000,
-        temperature: 0.7,
-        costPer1kTokens: 0.03,
-        description: "Most capable OpenAI model, excellent reasoning"
-    },
-    "claude-3-sonnet": {
-        name: "Claude 3 Sonnet",
-        provider: "anthropic",
-        url: "https://api.anthropic.com/v1/messages",
-        maxTokens: 4000,
-        temperature: 0.7,
-        costPer1kTokens: 0.003,
-        description: "Balanced performance and speed from Anthropic"
-    }
+// 
+const MODEL = {
+    name: "gpt-3.5-turbo",
+    url: "https://api.openai.com/v1/chat/completions",
+    maxTokens: 4000,
+    temperature: 0.7
 };
 
-// Predefined spatial physics questions for benchmarking
-const SPATIAL_PHYSICS_QUESTIONS = [
-    {
-        id: 1,
-        question: "What is the escape velocity of an object from the surface of Mars?",
-        difficulty: "intermediate",
-        category: "orbital mechanics",
-        expectedElements: ["gravitational constant", "Mars mass", "Mars radius", "11.2 km/s", "5.03 km/s"]
-    },
-    {
-        id: 2,
-        question: "How do you calculate a Hohmann transfer orbit between Earth and Mars?",
-        difficulty: "advanced",
-        category: "orbital mechanics",
-        expectedElements: ["semi-major axis", "orbital periods", "transfer time", "delta-v", "aphelion", "perihelion"]
-    },
-    {
-        id: 3,
-        question: "Explain the Oberth effect and how it's used in space propulsion.",
-        difficulty: "advanced",
-        category: "propulsion",
-        expectedElements: ["kinetic energy", "velocity", "thrust", "fuel efficiency", "gravitational potential"]
-    },
-    {
-        id: 4,
-        question: "What is the difference between apogee and perigee in an elliptical orbit?",
-        difficulty: "basic",
-        category: "orbital mechanics",
-        expectedElements: ["apogee", "perigee", "farthest point", "closest point", "elliptical orbit"]
-    },
-    {
-        id: 5,
-        question: "How does ion propulsion work in space and what are its advantages?",
-        difficulty: "intermediate",
-        category: "propulsion",
-        expectedElements: ["ionized particles", "electric field", "high specific impulse", "low thrust", "long duration"]
-    },
-    {
-        id: 6,
-        question: "Calculate the orbital period of a satellite at 400 km altitude above Earth.",
-        difficulty: "intermediate",
-        category: "orbital mechanics",
-        expectedElements: ["Kepler's third law", "orbital period", "semi-major axis", "gravitational parameter", "92.5 minutes"]
-    },
-    {
-        id: 7,
-        question: "What causes tidal locking and how does it affect planetary moons?",
-        difficulty: "intermediate",
-        category: "celestial mechanics",
-        expectedElements: ["tidal forces", "gravitational gradient", "synchronous rotation", "Moon", "libration"]
-    },
-    {
-        id: 8,
-        question: "Explain the concept of Lagrange points and their applications.",
-        difficulty: "advanced",
-        category: "celestial mechanics",
-        expectedElements: ["L1", "L2", "L3", "L4", "L5", "gravitational balance", "James Webb Space Telescope"]
-    }
-];
-
-// API keys and variables
+// Global variables
 var openaiApiKey = "";
-var anthropicApiKey = "";
-var currentModel = "gpt-4";
-var currentPrompt = "";
-var isBenchmarking = false;
-var benchmarkResults = [];
+var conversationHistory = [];
+var currentMode = "teach"; // "teach" or "code"
+var currentCode = ""; // Stores the latest generated code
 
 // ============== //
 // INITIALIZATION //
@@ -124,298 +47,369 @@ function initialize() {
     // Generate the main HTML interface
     generateInterface();
     updateKeyStatus();
-    updateModelInfo();
     
-    // Add Enter key support for question input
+    // Add Enter key support for prompt input (Ctrl+Enter to send)
     $(document).ready(function() {
         setTimeout(function() {
-            $('#question-input').on('keydown', function(event) {
+            $('#prompt-input').on('keydown', function(event) {
                 if (event.key === 'Enter' && event.ctrlKey) {
-                    sendQuestion();
+                    sendPrompt();
                 }
             });
         }, 1000);
     });
 }
 
-// == //
-// UI //
-// == //
+// ============= //
+// UI GENERATION //
+// ============= //
 
 function generateInterface() {
     document.write(`
 <div class="codevibe-container">
-    <h1>CodeVibe Tutor</h1>
-
-    <div class="info-section">
-        <p>Multi-Model LLM Benchmarking for Spatial Physics</p>
+    <!-- Header -->
+    <div class="header">
+        <h1>CodeVibe Tutor</h1>
     </div>
 
-    <!-- API Key Configuration Section -->
-    <div class="config-section">
-        <h3>API Key Configuration</h3>
-        <p>You need API keys to communicate with different model providers. This system will never store your keys.</p>
-        <center>
-        <div class="api-key-inputs">
-            <div class="key-input-group">
-                <label for="openai-key">OpenAI API Key:</label>
-                <input type="password" id="openai-key" placeholder="sk-..." style="width: 300px;">
-                <button onclick="setOpenAIKey()" class="btn-primary">Set OpenAI Key</button>
-            </div>
-            
-            <div class="key-input-group">
-                <label for="anthropic-key">Anthropic API Key:</label>
-                <input type="password" id="anthropic-key" placeholder="sk-ant-..." style="width: 300px;">
-                <button onclick="setAnthropicKey()" class="btn-primary">Set Anthropic Key</button>
-            </div>
+    <!-- API Key Setup -->
+    <div class="api-setup" id="api-setup">
+        <div class="api-setup-content">
+            <input type="password" id="openai-key" placeholder="Enter your OpenAI API Key">
+            <button onclick="setOpenAIKey()" class="btn-set">Set Key</button>
         </div>
-        </center>
-        
         <div id="key-status"></div>
     </div>
 
-    <!-- Model Selection Section -->
-    <div class="model-section">
-        <h3>🤖 Model Selection</h3>
-        <div class="model-selector">
-            <label for="model-select">Choose a model to test:</label>
-            <select id="model-select" onchange="changeModel()">
-                ${Object.entries(AVAILABLE_MODELS).map(([key, model]) => 
-                    `<option value="${key}">${model.name} - ${model.description}</option>`
-                ).join('')}
-            </select>
+    <!-- Conversation Area -->
+    <div class="conversation-area" id="conversation-area">
+        <div id="messages-container"></div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-area">
+        <div class="mode-selector">
+            <button onclick="setMode('teach')" id="btn-teach" class="btn-mode active">Teach</button>
+            <button onclick="setMode('code')" id="btn-code" class="btn-mode">Code</button>
+            <button onclick="runCode()" id="btn-run-code" class="btn-run-code" style="display: none;">
+                ▶ Run Code
+            </button>
         </div>
-        
-        <div id="model-info">
-            <h4>Model Information:</h4>
-            <div id="model-details"></div>
+        <div class="input-wrapper">
+            <textarea id="prompt-input" placeholder="Message CodeVibe Tutor..." rows="1"></textarea>
+            <button onclick="sendPrompt()" class="btn-send">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
         </div>
     </div>
 
-    <!-- Question Input Section -->
-    <div class="question-section">
-        <h3>❓ Question Input</h3>
-        <div class="question-input-container">
-            <label for="question-input">Enter your spatial physics question:</label>
-            <textarea id="question-input" placeholder="e.g., What is the escape velocity from Mars?" rows="3" style="width: 100%;"></textarea>
-            <button onclick="sendQuestion()" class="btn-primary">Send Question</button>
-        </div>
-        
-        <!-- Predefined Questions -->
-        <div class="predefined-questions">
-            <h4>📚 Predefined Spatial Physics Questions:</h4>
-            <div class="question-grid">
-                ${SPATIAL_PHYSICS_QUESTIONS.map(q => 
-                    `<div class="question-card" onclick="loadQuestion(${q.id})">
-                        <div class="question-text">${q.question}</div>
-                        <div class="question-meta">
-                            <span class="difficulty ${q.difficulty}">${q.difficulty}</span>
-                            <span class="category">${q.category}</span>
-                        </div>
-                    </div>`
-                ).join('')}
+    <!-- Code Execution Modal (hidden by default) -->
+    <div id="code-modal" class="code-modal" style="display: none;">
+        <div class="code-modal-content">
+            <div class="code-modal-header">
+                <h3>Code Preview</h3>
+                <button onclick="closeCodeModal()" class="btn-close">×</button>
             </div>
+            <iframe id="code-iframe" sandbox="allow-scripts"></iframe>
         </div>
     </div>
-
-    <!-- Response Display Section -->
-    <div class="response-section">
-        <h3>💬 Model Response</h3>
-        <div id="response-container" class="response-box">
-            <div id="response-content">Select a model and ask a question to see the response here.</div>
-        </div>
-        
-        <!-- Response Analysis -->
-        <div class="analysis-section">
-            <h4>📊 Response Analysis</h4>
-            <div id="analysis-content">
-                <p>Response analysis will appear here after you ask a question.</p>
-            </div>
-        </div>
 </div>
 
-    <!-- Benchmarking Section -->
-    <div class="benchmark-section">
-        <h3>⚡ Multi-Model Benchmarking</h3>
-        <p>Test the same question across multiple models simultaneously.</p>
-        <button onclick="runBenchmark()" class="btn-secondary" id="benchmark-btn">Run Benchmark Test</button>
-        
-        <div id="benchmark-results" class="benchmark-results">
-            <!-- Benchmark results will be displayed here -->
-        </div>
-</div>
-
-    <!-- Warning Section -->
-    <div class="warning-section">
-        <p><strong>⚠️ Important:</strong> LLM responses may contain inaccuracies or "hallucinations". 
-        Always verify critical information from reliable sources. 
-        <a href="https://www.google.com/search?q=llm+hallucination" target="_blank">Learn more about LLM hallucinations</a>.</p>
-    </div>
-</div>
+<!-- CSS -->
 
 <style>
-
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-html {
-    margin: 0;
-    padding: 0;
-    background-color: black;
-    min-height: 100vh;
+html, body {
+    height: 100%;
+    background: #ffffff;
+    color: #000000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 .codevibe-container {
-    max-width: 1200px;
-    color: white;
-    background: black;
-    margin: 0 auto;
-    text-align: center;
-    padding: 75px;
-    font-family: Serif, Didone;
-}
-
-.config-section, .model-section, .question-section, .response-section, .benchmark-section {
-    background: black;
-    border: 0px solid #dee2e6;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px 0;
-}
-
-.info-section {
-    background: black;
-    border: 0px solid #2196f3;
-    border-radius: 8px;
-    padding: 15px;
-    margin: 20px 0;
-}
-
-.api-key-inputs {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.key-input-group {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    height: 100vh;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
-.btn-primary, .btn-secondary {
-    background: black;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 0px;
-    cursor: pointer;
-    font-size: 14px;
+/* Header */
+.header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e5e5;
+    text-align: center;
 }
 
-.btn-secondary {
-    background: black;
+.header h1 {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #000;
 }
 
-.btn-primary:hover, .btn-secondary:hover {
-    opacity: 0.8;
+/* API Setup */
+.api-setup {
+    padding: 15px 20px;
+    background: #f7f7f7;
+    border-bottom: 1px solid #e5e5e5;
 }
 
-.model-selector {
-    margin: 15px 0;
-}
-
-.model-selector select {
-    width: 100%;
-    padding: 8px;
-    border: 0px solid #ccc;
-    border-radius: 4px;
-}
-
-.question-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.question-card {
-    background: black;
-    border: 0px solid #ddd;
-    border-radius: 6px;
-    padding: 15px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.question-card:hover {
-    border-color: black;
-    box-shadow: 0 2px 4px rgba(0,123,255,0.1);
-}
-
-.question-meta {
+.api-setup-content {
     display: flex;
     gap: 10px;
-    margin-top: 10px;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
-.difficulty {
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-.difficulty.basic { background: #d4edda; color: #155724; }
-.difficulty.intermediate { background: #fff3cd; color: #856404; }
-.difficulty.advanced { background: #f8d7da; color: #721c24; }
-
-.category {
-    background: black;
-    color: #495057;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-}
-
-.response-box {
-    background: black;
-    border: 1px solid #ddd;
+#openai-key {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid #d0d0d0;
     border-radius: 6px;
+    font-size: 14px;
+    background: #fff;
+}
+
+.btn-set {
+    padding: 10px 20px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.btn-set:hover {
+    background: #333;
+}
+
+#key-status {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 13px;
+}
+
+/* Conversation Area */
+.conversation-area {
+    flex: 1;
+    overflow-y: auto;
     padding: 20px;
-    min-height: 200px;
+}
+
+#messages-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.message {
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.message.user {
+    color: #000;
+    font-weight: 500;
+}
+
+.message.assistant {
+    color: #374151;
+}
+
+.message-label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #666;
+}
+
+.message-content {
     white-space: pre-wrap;
 }
 
-.benchmark-results {
-    margin-top: 20px;
-}
-
-.benchmark-result {
-    background: black;
-    border: 0px solid #ddd;
-    border-radius: 6px;
+.message.assistant .message-content {
     padding: 15px;
-    margin: 10px 0;
-}
-
-.warning-section {
-    background: black;
-    border: 0px solid #ffc107;
+    background: #f7f7f7;
     border-radius: 8px;
-    padding: 15px;
-    margin: 20px 0;
+}
+
+/* Input Area */
+.input-area {
+    border-top: 1px solid #e5e5e5;
+    padding: 20px;
+    background: #fff;
+}
+
+.mode-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    justify-content: center;
+}
+
+.btn-mode {
+    padding: 6px 16px;
+    background: #fff;
+    color: #666;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.btn-mode:hover {
+    background: #f7f7f7;
+}
+
+.btn-mode.active {
+    background: #000;
+    color: #fff;
+    border-color: #000;
+}
+
+.btn-run-code {
+    padding: 6px 16px;
+    background: #10b981;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    margin-left: auto;
+}
+
+.btn-run-code:hover {
+    background: #059669;
+}
+
+.input-wrapper {
+    display: flex;
+    gap: 10px;
+    max-width: 700px;
+    margin: 0 auto;
+    align-items: flex-end;
+}
+
+#prompt-input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: none;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#prompt-input:focus {
+    outline: none;
+    border-color: #000;
+}
+
+.btn-send {
+    padding: 10px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.btn-send:hover {
+    background: #333;
+}
+
+.btn-send:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Code Modal */
+.code-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.code-modal-content {
+    background: #fff;
+    width: 90%;
+    max-width: 1000px;
+    height: 80%;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.code-modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.code-modal-header h3 {
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 30px;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+}
+
+.btn-close:hover {
+    color: #000;
+}
+
+#code-iframe {
+    flex: 1;
+    border: none;
+    background: #fff;
+}
+
+.loading {
+    color: #666;
 }
 </style>
 `);
 }
 
-// ==== //
-// CORE //
-// ==== //
+// ================== //
+// API KEY MANAGEMENT //
+// ================== //
 
 /**
  * Set the OpenAI API key
@@ -426,119 +420,218 @@ function setOpenAIKey() {
 }
 
 /**
- * Set the Anthropic API key
- */
-function setAnthropicKey() {
-    anthropicApiKey = document.getElementById('anthropic-key').value.trim();
-    updateKeyStatus();
-}
-
-/**
  * Update the API key status display
  */
 function updateKeyStatus() {
     const status = document.getElementById('key-status');
-    let statusHtml = '<div class="key-status">';
-    
     if (openaiApiKey) {
-        statusHtml += '<span style="color: white;">✅ OpenAI API key set</span><br>';
+        status.innerHTML = '<span style="color: #4caf50;">API key configured</span>';
+        // Hide the API setup section after key is set
+        document.getElementById('api-setup').style.display = 'none';
     } else {
-        statusHtml += '<span style="color: red;">❌ OpenAI API key not set</span><br>';
+        status.innerHTML = '<span style="color: #999;">Enter your OpenAI API key to start</span>';
     }
+}
+
+// ==== //
+// MODE //
+// ==== //
+
+/**
+ * Set the current mode (teach or code)
+ */
+function setMode(mode) {
+    currentMode = mode;
     
-    if (anthropicApiKey) {
-        statusHtml += '<span style="color: green;">✅ Anthropic API key set</span><br>';
+    // Update button states
+    document.getElementById('btn-teach').classList.remove('active');
+    document.getElementById('btn-code').classList.remove('active');
+    
+    if (mode === 'teach') {
+        document.getElementById('btn-teach').classList.add('active');
     } else {
-        statusHtml += '<span style="color: red;">❌ Anthropic API key not set</span><br>';
-    }
-    
-    statusHtml += '</div>';
-    status.innerHTML = statusHtml;
-}
-
-/**
- * Change the currently selected model
- */
-function changeModel() {
-    currentModel = document.getElementById('model-select').value;
-    updateModelInfo();
-}
-
-/**
- * Update the model information display
- */
-function updateModelInfo() {
-    const model = AVAILABLE_MODELS[currentModel];
-    const details = document.getElementById('model-details');
-    
-    details.innerHTML = `
-        <p><strong>Provider:</strong> ${model.provider}</p>
-        <p><strong>Max Tokens:</strong> ${model.maxTokens.toLocaleString()}</p>
-        <p><strong>Cost per 1K tokens:</strong> $${model.costPer1kTokens}</p>
-        <p><strong>Description:</strong> ${model.description}</p>
-    `;
-}
-
-/**
- * Load a predefined question into the input field
- */
-function loadQuestion(questionId) {
-    const question = SPATIAL_PHYSICS_QUESTIONS.find(q => q.id === questionId);
-    if (question) {
-        document.getElementById('question-input').value = question.question;
+        document.getElementById('btn-code').classList.add('active');
     }
 }
 
+// ============ //
+// CONVERSATION //
+// ============ //
+
 /**
- * Send a question to the selected model
+ * Add a message to the conversation display
  */
-function sendQuestion() {
-    const questionInput = document.getElementById('question-input');
-    currentPrompt = questionInput.value.trim();
+function addMessage(role, content) {
+    const container = document.getElementById('messages-container');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
     
-    if (!currentPrompt) {
-        alert('Please enter a question first.');
+    const label = document.createElement('div');
+    label.className = 'message-label';
+    label.textContent = role === 'user' ? 'You' : 'CodeVibe Tutor';
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.textContent = content;
+    
+    messageDiv.appendChild(label);
+    messageDiv.appendChild(contentDiv);
+    
+    // Always check for code in assistant messages (regardless of mode)
+    if (role === 'assistant') {
+        const codeBlockRegex = /```(?:html|javascript|js)?\n([\s\S]*?)```/g;
+        const matches = [...content.matchAll(codeBlockRegex)];
+        
+        if (matches.length > 0) {
+            // Update the code in memory
+            currentCode = matches[0][1];
+            // Show the Run Code button
+            updateRunCodeButton();
+        }
+    }
+    
+    container.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    const conversationArea = document.getElementById('conversation-area');
+    conversationArea.scrollTop = conversationArea.scrollHeight;
+}
+
+/**
+ * Update the Run Code button visibility
+ */
+function updateRunCodeButton() {
+    const runBtn = document.getElementById('btn-run-code');
+    if (currentCode) {
+        runBtn.style.display = 'block';
+    } else {
+        runBtn.style.display = 'none';
+    }
+}
+
+/**
+ * Show loading indicator
+ */
+function showLoading() {
+    const container = document.getElementById('messages-container');
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'message assistant loading';
+    loadingDiv.id = 'loading-message';
+    loadingDiv.innerHTML = '<div class="message-label">CodeVibe Tutor</div><div class="message-content">Thinking...</div>';
+    container.appendChild(loadingDiv);
+    
+    const conversationArea = document.getElementById('conversation-area');
+    conversationArea.scrollTop = conversationArea.scrollHeight;
+}
+
+/**
+ * Remove loading indicator
+ */
+function removeLoading() {
+    const loading = document.getElementById('loading-message');
+    if (loading) {
+        loading.remove();
+    }
+}
+
+// ================== //
+// AI PROMPT HANDLING //
+// ================== //
+
+/**
+ * Send a prompt to the AI
+ */
+function sendPrompt() {
+    const promptInput = document.getElementById('prompt-input');
+    const prompt = promptInput.value.trim();
+    
+    if (!prompt) {
         return;
     }
     
-    const model = AVAILABLE_MODELS[currentModel];
-    
-    // Check if we have the required API key
-    if (model.provider === 'openai' && !openaiApiKey) {
+    // Check if we have the API key
+    if (!openaiApiKey) {
         alert('Please set your OpenAI API key first.');
         return;
     }
     
-    if (model.provider === 'anthropic' && !anthropicApiKey) {
-        alert('Please set your Anthropic API key first.');
-        return;
-    }
+    // Add user message to display
+    addMessage('user', prompt);
     
-    // Show loading state
-    document.getElementById('response-content').innerHTML = '🔄 Processing your question...';
+    // Clear input
+    promptInput.value = '';
+    promptInput.style.height = 'auto';
     
-    // Send the request based on the provider
-    if (model.provider === 'openai') {
-        sendToOpenAI();
-    } else if (model.provider === 'anthropic') {
-        sendToAnthropic();
+    // Show loading
+    showLoading();
+    
+    // Build the full prompt with mode context
+    const systemPrompt = buildSystemPrompt();
+    const fullPrompt = buildFullPrompt(prompt);
+    
+    // Send to OpenAI
+    sendToOpenAI(systemPrompt, fullPrompt, prompt);
+}
+
+/**
+ * Build system prompt based on current mode
+ */
+function buildSystemPrompt() {
+    if (currentMode === 'teach') {
+        return `You are CodeVibe Tutor, a friendly JavaScript teacher. 
+Explain programming concepts step-by-step in a clear, educational way. 
+Use simple language and provide examples when helpful. 
+Focus on helping the user understand the concepts deeply.`;
+    } else {
+        return `You are CodeVibe Tutor, a JavaScript code generator. 
+Generate clean, runnable JavaScript code based on the user's request. 
+Include comments to explain the code. 
+If the code uses canvas or DOM, make it self-contained and ready to run in an HTML page.
+Always wrap your code in a proper structure with HTML if needed.`;
     }
 }
 
 /**
+ * Build full prompt with conversation history
+ */
+function buildFullPrompt(userPrompt) {
+    let contextPrompt = '';
+    
+    // Add recent conversation history (last 3 exchanges)
+    const recentHistory = conversationHistory.slice(-3);
+    if (recentHistory.length > 0) {
+        contextPrompt += 'Previous conversation:\n';
+        recentHistory.forEach(item => {
+            contextPrompt += `User: ${item.prompt}\nAssistant: ${item.response}\n\n`;
+        });
+    }
+    
+    contextPrompt += `User: ${userPrompt}`;
+    return contextPrompt;
+}
+
+// ========= //
+// API CALLS //
+// ========= //
+
+/**
  * Send request to OpenAI API
  */
-function sendToOpenAI() {
-    const model = AVAILABLE_MODELS[currentModel];
-    
+function sendToOpenAI(systemPrompt, userPrompt, originalPrompt) {
     const requestData = {
-        model: currentModel,
-        messages: [{
-            role: "user",
-            content: currentPrompt
-        }],
-        temperature: model.temperature,
-        max_tokens: Math.min(model.maxTokens, 2000)
+        model: MODEL.name,
+        messages: [
+            {
+                role: "system",
+                content: systemPrompt
+            },
+            {
+                role: "user",
+                content: userPrompt
+            }
+        ],
+        temperature: MODEL.temperature,
+        max_tokens: 2000
     };
     
     $.ajaxSetup({
@@ -550,82 +643,65 @@ function sendToOpenAI() {
     
     $.ajax({
         type: "POST",
-        url: model.url,
+        url: MODEL.url,
         data: JSON.stringify(requestData),
         dataType: "json",
         success: function(data) {
-            handleOpenAIResponse(data);
+            removeLoading();
+            const response = data.choices[0].message.content;
+            
+            // Add to conversation history
+            conversationHistory.push({
+                prompt: originalPrompt,
+                response: response,
+                mode: currentMode,
+                timestamp: new Date()
+            });
+            
+            // Display response
+            addMessage('assistant', response);
         },
         error: function(xhr, status, error) {
-            handleError('OpenAI', xhr.responseText);
+            removeLoading();
+            handleError(xhr.responseText);
         }
     });
 }
 
 /**
- * Send request to Anthropic API
+ * Run the code stored in memory in an iframe modal
  */
-function sendToAnthropic() {
-    const model = AVAILABLE_MODELS[currentModel];
+function runCode() {
+    if (!currentCode) {
+        alert('No code to execute. Generate some code first!');
+        return;
+    }
     
-    const requestData = {
-        model: currentModel,
-        max_tokens: Math.min(model.maxTokens, 2000),
-        messages: [{
-            role: "user",
-            content: currentPrompt
-        }]
-    };
+    const modal = document.getElementById('code-modal');
+    const iframe = document.getElementById('code-iframe');
     
-    $.ajaxSetup({
-        headers: {
-            "Content-Type": "application/json",
-            "x-api-key": anthropicApiKey,
-            "anthropic-version": "2023-06-01"
-        }
-    });
+    // Show modal
+    modal.style.display = 'flex';
     
-    $.ajax({
-        type: "POST",
-        url: model.url,
-        data: JSON.stringify(requestData),
-        dataType: "json",
-        success: function(data) {
-            handleAnthropicResponse(data);
-        },
-        error: function(xhr, status, error) {
-            handleError('Anthropic', xhr.responseText);
-        }
-    });
+    // Write code to iframe
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write(currentCode);
+    iframeDoc.close();
 }
 
 /**
- * Handle successful OpenAI response
+ * Close the code execution modal
  */
-function handleOpenAIResponse(data) {
-    const response = data.choices[0].message.content;
-    document.getElementById('response-content').innerHTML = response;
-    
-    // Analyze the response
-    analyzeResponse(response, currentModel);
-}
-
-/**
- * Handle successful Anthropic response
- */
-function handleAnthropicResponse(data) {
-    const response = data.content[0].text;
-    document.getElementById('response-content').innerHTML = response;
-    
-    // Analyze the response
-    analyzeResponse(response, currentModel);
+function closeCodeModal() {
+    document.getElementById('code-modal').style.display = 'none';
 }
 
 /**
  * Handle API errors
  */
-function handleError(provider, errorMessage) {
-    let errorText = `❌ Error from ${provider} API: `;
+function handleError(errorMessage) {
+    let errorText = 'Sorry, there was an error:\n\n';
     
     try {
         const error = JSON.parse(errorMessage);
@@ -634,227 +710,5 @@ function handleError(provider, errorMessage) {
         errorText += errorMessage;
     }
     
-    document.getElementById('response-content').innerHTML = errorText;
-    document.getElementById('analysis-content').innerHTML = '<p>Error occurred - no analysis available.</p>';
-}
-
-/**
- * Analyze the model's response for spatial physics content
- */
-function analyzeResponse(response, modelName) {
-    const analysis = document.getElementById('analysis-content');
-    
-    // Basic analysis metrics
-    const wordCount = response.split(' ').length;
-    const hasMath = /[0-9]+\.[0-9]+|[0-9]+ km\/s|[0-9]+ m\/s|velocity|acceleration|force|mass|gravity/i.test(response);
-    const hasPhysicsTerms = /orbit|gravitational|propulsion|delta-v|thrust|specific impulse|escape velocity/i.test(response);
-    
-    let analysisHtml = `
-        <div class="analysis-metrics">
-            <h5>Response Analysis for ${AVAILABLE_MODELS[modelName].name}:</h5>
-            <ul>
-                <li><strong>Word Count:</strong> ${wordCount}</li>
-                <li><strong>Contains Mathematical Content:</strong> ${hasMath ? '✅ Yes' : '❌ No'}</li>
-                <li><strong>Contains Physics Terms:</strong> ${hasPhysicsTerms ? '✅ Yes' : '❌ No'}</li>
-            </ul>
-        </div>
-    `;
-    
-    analysis.innerHTML = analysisHtml;
-}
-
-/**
- * Run benchmark test across multiple models
- */
-function runBenchmark() {
-    const questionInput = document.getElementById('question-input');
-    const question = questionInput.value.trim();
-    
-    if (!question) {
-        alert('Please enter a question first.');
-        return;
-    }
-    
-    // Check which models we can test
-    const availableModels = Object.keys(AVAILABLE_MODELS).filter(modelKey => {
-        const model = AVAILABLE_MODELS[modelKey];
-        return (model.provider === 'openai' && openaiApiKey) || 
-               (model.provider === 'anthropic' && anthropicApiKey);
-    });
-    
-    if (availableModels.length === 0) {
-        alert('Please set at least one API key to run benchmarks.');
-        return;
-    }
-    
-    const benchmarkBtn = document.getElementById('benchmark-btn');
-    benchmarkBtn.disabled = true;
-    benchmarkBtn.textContent = '🔄 Running Benchmark...';
-    
-    const resultsContainer = document.getElementById('benchmark-results');
-    resultsContainer.innerHTML = '<h4>🔄 Running benchmark tests...</h4>';
-    
-    // Reset benchmark results
-    benchmarkResults = [];
-    
-    // Run tests for each available model
-    let completedTests = 0;
-    const totalTests = availableModels.length;
-    
-    availableModels.forEach(modelKey => {
-        const model = AVAILABLE_MODELS[modelKey];
-        currentModel = modelKey;
-        currentPrompt = question;
-        
-        if (model.provider === 'openai') {
-            sendToOpenAIBenchmark(modelKey, () => {
-                completedTests++;
-                if (completedTests === totalTests) {
-                    displayBenchmarkResults();
-                    benchmarkBtn.disabled = false;
-                    benchmarkBtn.textContent = 'Run Benchmark Test';
-                }
-            });
-        } else if (model.provider === 'anthropic') {
-            sendToAnthropicBenchmark(modelKey, () => {
-                completedTests++;
-                if (completedTests === totalTests) {
-                    displayBenchmarkResults();
-                    benchmarkBtn.disabled = false;
-                    benchmarkBtn.textContent = 'Run Benchmark Test';
-                }
-            });
-        }
-    });
-}
-
-/**
- * Send benchmark request to OpenAI
- */
-function sendToOpenAIBenchmark(modelKey, callback) {
-    const model = AVAILABLE_MODELS[modelKey];
-    
-    const requestData = {
-        model: modelKey,
-        messages: [{
-            role: "user",
-            content: currentPrompt
-        }],
-        temperature: model.temperature,
-        max_tokens: Math.min(model.maxTokens, 2000)
-    };
-
-$.ajaxSetup({
-        headers: {
-        "Content-Type": "application/json",
-            "Authorization": "Bearer " + openaiApiKey
-        }
-    });
-    
-    $.ajax({
-        type: "POST",
-        url: model.url,
-        data: JSON.stringify(requestData),
-        dataType: "json",
-        success: function(data) {
-            const response = data.choices[0].message.content;
-            benchmarkResults.push({
-                model: modelKey,
-                modelName: model.name,
-                response: response,
-                timestamp: new Date()
-            });
-            callback();
-        },
-        error: function(xhr, status, error) {
-            benchmarkResults.push({
-                model: modelKey,
-                modelName: model.name,
-                response: `Error: ${xhr.responseText}`,
-                timestamp: new Date(),
-                error: true
-            });
-            callback();
-        }
-    });
-}
-
-/**
- * Send benchmark request to Anthropic
- */
-function sendToAnthropicBenchmark(modelKey, callback) {
-    const model = AVAILABLE_MODELS[modelKey];
-    
-    const requestData = {
-        model: modelKey,
-        max_tokens: Math.min(model.maxTokens, 2000),
-        messages: [{
-            role: "user",
-            content: currentPrompt
-        }]
-    };
-    
-    $.ajaxSetup({
-        headers: {
-            "Content-Type": "application/json",
-            "x-api-key": anthropicApiKey,
-            "anthropic-version": "2023-06-01"
-        }
-    });
-
- $.ajax({
-    type: "POST",
-        url: model.url,
-        data: JSON.stringify(requestData),
-    dataType: "json",
-        success: function(data) {
-            const response = data.content[0].text;
-            benchmarkResults.push({
-                model: modelKey,
-                modelName: model.name,
-                response: response,
-                timestamp: new Date()
-            });
-            callback();
-        },
-        error: function(xhr, status, error) {
-            benchmarkResults.push({
-                model: modelKey,
-                modelName: model.name,
-                response: `Error: ${xhr.responseText}`,
-                timestamp: new Date(),
-                error: true
-            });
-            callback();
-        }
-    });
-}
-
-/**
- * Display benchmark results
- */
-function displayBenchmarkResults() {
-    const container = document.getElementById('benchmark-results');
-    
-    let html = '<h4>📊 Benchmark Results</h4>';
-    
-    benchmarkResults.forEach(result => {
-        const wordCount = result.response.split(' ').length;
-        const hasMath = /[0-9]+\.[0-9]+|[0-9]+ km\/s|[0-9]+ m\/s|velocity|acceleration|force|mass|gravity/i.test(result.response);
-        const hasPhysicsTerms = /orbit|gravitational|propulsion|delta-v|thrust|specific impulse|escape velocity/i.test(result.response);
-        
-        html += `
-            <div class="benchmark-result">
-                <h5>${result.modelName} ${result.error ? '(Error)' : ''}</h5>
-                <div class="response-preview">${result.response.substring(0, 200)}${result.response.length > 200 ? '...' : ''}</div>
-                <div class="response-metrics">
-                    <span>Words: ${wordCount}</span>
-                    <span>Math: ${hasMath ? '✅' : '❌'}</span>
-                    <span>Physics: ${hasPhysicsTerms ? '✅' : '❌'}</span>
-                </div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
+    addMessage('assistant', errorText);
 }
