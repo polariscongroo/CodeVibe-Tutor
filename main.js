@@ -301,41 +301,50 @@ html, body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: #000;
     z-index: 1000;
 }
 
 .code-modal-content {
-    background: #fff;
-    width: 90%;
-    max-width: 1000px;
-    height: 80%;
-    margin: 5% auto;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
 }
 
 .code-modal-header {
-    padding: 20px;
-    border-bottom: 1px solid #e5e5e5;
+    padding: 15px 20px;
+    background: #000;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+}
+
+.code-modal-header h3 {
+    color: #fff;
+    font-size: 1em;
 }
 
 .btn-close {
-    background: none;
+    background: #fff;
+    color: #000;
     border: none;
-    font-size: 24px;
+    font-size: 20px;
     cursor: pointer;
-    color: #666;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-weight: bold;
 }
 
 .btn-close:hover {
-    color: #000;
+    background: #ddd;
 }
 
 #code-iframe {
     flex: 1;
+    width: 100%;
+    height: 100%;
     border: none;
 }
 </style>
@@ -486,18 +495,26 @@ function sendPrompt() {
  * Build system prompt
  */
 function buildSystemPrompt() {
-    return `You are CodeVibe Tutor, a friendly JavaScript teacher and code assistant.
+    return `You are CodeVibe Tutor, a creative JavaScript teacher and advanced code artist.
 
 When the user asks for explanations, explain programming concepts step-by-step in a clear way.
-When the user asks for code, generate clean, runnable JavaScript/HTML code.
 
-If you provide code:
-- Wrap it in markdown code blocks with \`\`\`html or \`\`\`javascript
-- Make it self-contained and ready to run
-- Include helpful comments
-- If using canvas or DOM, provide a complete HTML page
+When the user asks for visual code (animations, drawings, games):
+- Create ELABORATE, DETAILED, and IMPRESSIVE visual effects
+- Use advanced techniques: gradients, shadows, animations, particles, physics
+- Make it FULL SCREEN: always use width: 100vw, height: 100vh
+- Add smooth animations and interactive elements
+- Use rich color palettes and aesthetic designs
+- Add visual polish: easing functions, layered effects, depth
 
-Be conversational, helpful, and adapt to what the user needs.`;
+Code structure:
+- Wrap in \`\`\`html blocks
+- Always include: <!DOCTYPE html><html><head><style>body{margin:0;overflow:hidden}</style></head><body><canvas id="c"></canvas><script>...</script></body></html>
+- Make canvas fullscreen: canvas.width=innerWidth; canvas.height=innerHeight;
+- Add window resize handling
+- Include detailed comments explaining the visual techniques
+
+Be creative, ambitious, and make visually stunning creations that impress!`;
 }
 
 /**
