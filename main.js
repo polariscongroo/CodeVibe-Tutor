@@ -65,9 +65,10 @@ function generateInterface() {
 
     <!-- API Key Setup -->
     <div class="api-setup" id="api-setup">
-        <div class="api-setup-content">
-            <input type="password" id="api-key" placeholder="Enter your Groq API Key (free at groq.com)">
-            <button onclick="setAPIKey()" class="btn-set">Set Key</button>
+        <p>Get a free API key at <a href="https://console.groq.com" target="_blank">console.groq.com</a></p>
+        <div class="input-group">
+            <input type="password" id="api-key" placeholder="Enter your Groq API key...">
+            <button onclick="setAPIKey()">Set Key</button>
         </div>
         <div id="key-status"></div>
     </div>
@@ -101,7 +102,7 @@ function generateInterface() {
                 <h3>Code Preview</h3>
                 <button onclick="closeCodeModal()" class="btn-close">×</button>
             </div>
-            <iframe id="code-iframe" sandbox="allow-scripts"></iframe>
+            <iframe id="code-iframe" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
         </div>
     </div>
 </div>
@@ -145,28 +146,44 @@ html, body {
 
 /* API Setup */
 .api-setup {
-    padding: 15px 20px;
+    padding: 20px;
     background: #f7f7f7;
     border-bottom: 1px solid #e5e5e5;
+    text-align: center;
 }
 
-.api-setup-content {
+.api-setup p {
+    margin-bottom: 15px;
+    font-size: 13px;
+    color: #666;
+}
+
+.api-setup a {
+    color: #000;
+    text-decoration: underline;
+}
+
+.input-group {
     display: flex;
     gap: 10px;
-    max-width: 600px;
+    max-width: 500px;
     margin: 0 auto;
 }
 
-#openai-key {
+#api-key {
     flex: 1;
     padding: 10px 15px;
     border: 1px solid #d0d0d0;
     border-radius: 6px;
     font-size: 14px;
-    background: #fff;
 }
 
-.btn-set {
+#api-key:focus {
+    outline: none;
+    border-color: #000;
+}
+
+.input-group button {
     padding: 10px 20px;
     background: #000;
     color: #fff;
@@ -174,16 +191,14 @@ html, body {
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 500;
 }
 
-.btn-set:hover {
+.input-group button:hover {
     background: #333;
 }
 
 #key-status {
     margin-top: 10px;
-    text-align: center;
     font-size: 13px;
 }
 
@@ -201,16 +216,6 @@ html, body {
 
 .message {
     margin-bottom: 30px;
-    line-height: 1.6;
-}
-
-.message.user {
-    color: #000;
-    font-weight: 500;
-}
-
-.message.assistant {
-    color: #374151;
 }
 
 .message-label {
@@ -222,12 +227,13 @@ html, body {
 
 .message-content {
     white-space: pre-wrap;
+    line-height: 1.6;
 }
 
 .message.assistant .message-content {
     padding: 15px;
     background: #f7f7f7;
-    border-radius: 8px;
+    border-radius: 6px;
 }
 
 /* Input Area */
@@ -239,25 +245,22 @@ html, body {
 
 .mode-selector {
     display: flex;
-    gap: 8px;
     margin-bottom: 12px;
     justify-content: flex-end;
 }
 
 .btn-run-code {
     padding: 8px 20px;
-    background: #10b981;
+    background: #000;
     color: #fff;
     border: none;
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s;
 }
 
 .btn-run-code:hover {
-    background: #059669;
+    background: #333;
 }
 
 .input-wrapper {
@@ -272,12 +275,10 @@ html, body {
     flex: 1;
     padding: 12px 15px;
     border: 1px solid #d0d0d0;
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: 15px;
     font-family: inherit;
     resize: none;
-    max-height: 200px;
-    overflow-y: auto;
 }
 
 #prompt-input:focus {
@@ -290,22 +291,14 @@ html, body {
     background: #000;
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 40px;
     height: 40px;
 }
 
 .btn-send:hover {
     background: #333;
-}
-
-.btn-send:disabled {
-    background: #ccc;
-    cursor: not-allowed;
 }
 
 /* Code Modal */
@@ -316,9 +309,6 @@ html, body {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 1000;
 }
 
@@ -327,7 +317,7 @@ html, body {
     width: 90%;
     max-width: 1000px;
     height: 80%;
-    border-radius: 12px;
+    margin: 5% auto;
     display: flex;
     flex-direction: column;
 }
@@ -337,24 +327,14 @@ html, body {
     border-bottom: 1px solid #e5e5e5;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-}
-
-.code-modal-header h3 {
-    font-size: 1.2em;
-    font-weight: 600;
 }
 
 .btn-close {
     background: none;
     border: none;
-    font-size: 30px;
+    font-size: 24px;
     cursor: pointer;
     color: #666;
-    line-height: 1;
-    padding: 0;
-    width: 30px;
-    height: 30px;
 }
 
 .btn-close:hover {
@@ -364,11 +344,6 @@ html, body {
 #code-iframe {
     flex: 1;
     border: none;
-    background: #fff;
-}
-
-.loading {
-    color: #666;
 }
 </style>
 `);
@@ -390,13 +365,8 @@ function setAPIKey() {
  * Update the API key status display
  */
 function updateKeyStatus() {
-    const status = document.getElementById('key-status');
     if (apiKey) {
-        status.innerHTML = '<span style="color: #4caf50;">Groq API key configured</span>';
-        // Hide the API setup section after key is set
         document.getElementById('api-setup').style.display = 'none';
-    } else {
-        status.innerHTML = '<span style="color: #999;">Get a free API key at <a href="https://console.groq.com" target="_blank">console.groq.com</a></span>';
     }
 }
 
@@ -623,17 +593,33 @@ function runCode() {
         return;
     }
     
+    console.log('Running code:', currentCode.substring(0, 100) + '...');
+    
     const modal = document.getElementById('code-modal');
     const iframe = document.getElementById('code-iframe');
+    
+    // Clear previous content by recreating the iframe
+    const newIframe = document.createElement('iframe');
+    newIframe.id = 'code-iframe';
+    newIframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-modals');
+    iframe.parentNode.replaceChild(newIframe, iframe);
     
     // Show modal
     modal.style.display = 'flex';
     
-    // Write code to iframe
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    iframeDoc.open();
-    iframeDoc.write(currentCode);
-    iframeDoc.close();
+    // Wait a bit for iframe to be ready, then write code
+    setTimeout(() => {
+        try {
+            const iframeDoc = newIframe.contentDocument || newIframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(currentCode);
+            iframeDoc.close();
+            console.log('Code executed successfully');
+        } catch (error) {
+            console.error('Error executing code:', error);
+            alert('Error executing code: ' + error.message);
+        }
+    }, 100);
 }
 
 /**
